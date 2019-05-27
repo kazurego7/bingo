@@ -12,7 +12,6 @@ class Program {
 
         var cardModel = Enumerable.Range (bingoNumMin, bingoNumCount)
             .Apply (Shuffle)
-            .Take (cardSize * cardSize)
             .Buffer (cardSize)
             .Apply (MakeMiddleHole);
 
@@ -28,22 +27,29 @@ class Program {
 
         // ローカル関数定義
 
-        // シャッフル
+        // シャッフルして、cardSize^2に切り取る
         IEnumerable<T> Shuffle<T> (IEnumerable<T> nums) {
             var rndGen = new Random ();
             return Enumerable.Range (0, cardSize * cardSize)
                 .Aggregate (
-                    (rest: nums, shuffled: Enumerable.Empty<T> ()),
-                    (arg, i) => {
+                    (rest: nums.ToList (), shuffled: Enumerable.Empty<T> ()),
+                    (arg, _) => {
                         var (rest, shuffled) = arg;
-                        var rndIndex = rndGen.Next (rest.Count ());
-                        var nextRest = rest.RemoveAt (rndIndex);
+                        var rndIndex = rndGen.Next (rest.Count);
                         var nextShuffled = shuffled.Append (rest.ElementAt (rndIndex));
-                        return (nextRest, nextShuffled);
+                        rest.RemoveAt (rndIndex);
+                        return (rest, nextShuffled);
                     }
                 ).shuffled;
-
         }
+
+        // IEnumerable<T> ShuffleRec<T>(Random rndGen, IEnumerable<T> rest, IEnumerable<T> shuffled, int i){
+        //     if (i == 0){
+        //         return shuffled;
+        //     } else {
+        //         var rndIndex = rndGen.Next(rest.Count());
+        //     }
+        // }
 
         // Bingoは真ん中だけ空いているので、真ん中だけNothingにする
         IEnumerable<IEnumerable<Maybe<int>>> MakeMiddleHole (IEnumerable<IEnumerable<int>> nums2D) {
@@ -65,12 +71,5 @@ static class MyExtentions {
     /// </summary>
     public static TR Apply<T, TR> (this T arg, Func<T, TR> func) {
         return func (arg);
-    }
-
-    /// <summary>
-    /// インデックスの要素を取り除く
-    /// </summary>
-    public static IEnumerable<T> RemoveAt<T> (this IEnumerable<T> source, int index) {
-        return source.Take (index).Concat (source.Skip (index + 1));
     }
 }
