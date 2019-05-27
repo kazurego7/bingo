@@ -7,8 +7,8 @@ using static MyExtentions;
 class Program {
     static void Main (string[] args) {
         var bingoNumMin = 1;
-        var bingoNumCount = 100;
-        var cardSize = 5;
+        var bingoNumCount = 10000;
+        var cardSize = 33;
 
         var cardModel = Enumerable.Range (bingoNumMin, bingoNumCount)
             .Apply (Shuffle)
@@ -17,8 +17,8 @@ class Program {
 
         var cardView = cardModel.Select (row =>
                 row.Select (num =>
-                    num.Select (x => $"{x:D3}|")
-                    .OrElse ("   |") //空いているものは空白3文字
+                    num.Select (x => $"{x:D4}|")
+                    .OrElse ("    |") //空いているものは空白4文字
                 ).Apply (strs => String.Concat (strs)) + "\n"
             ).Apply (strs => String.Concat (strs))
             .TrimEnd ('\n');
@@ -30,26 +30,18 @@ class Program {
         // シャッフルして、cardSize^2に切り取る
         IEnumerable<T> Shuffle<T> (IEnumerable<T> nums) {
             var rndGen = new Random ();
+            var rest = nums.ToList ();
             return Enumerable.Range (0, cardSize * cardSize)
                 .Aggregate (
-                    (rest: nums.ToList (), shuffled: Enumerable.Empty<T> ()),
-                    (arg, _) => {
-                        var (rest, shuffled) = arg;
+                    Enumerable.Empty<T> (),
+                    (shuffled, _) => {
                         var rndIndex = rndGen.Next (rest.Count);
-                        var nextShuffled = shuffled.Append (rest.ElementAt (rndIndex));
+                        var nextShuffled = shuffled.Append (rest[rndIndex]);
                         rest.RemoveAt (rndIndex);
-                        return (rest, nextShuffled);
+                        return nextShuffled;
                     }
-                ).shuffled;
+                );
         }
-
-        // IEnumerable<T> ShuffleRec<T>(Random rndGen, IEnumerable<T> rest, IEnumerable<T> shuffled, int i){
-        //     if (i == 0){
-        //         return shuffled;
-        //     } else {
-        //         var rndIndex = rndGen.Next(rest.Count());
-        //     }
-        // }
 
         // Bingoは真ん中だけ空いているので、真ん中だけNothingにする
         IEnumerable<IEnumerable<Maybe<int>>> MakeMiddleHole (IEnumerable<IEnumerable<int>> nums2D) {
