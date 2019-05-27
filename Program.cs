@@ -11,7 +11,7 @@ class Program {
         var cardSize = 33;
 
         var cardModel = Enumerable.Range (bingoNumMin, bingoNumCount)
-            .Apply (Shuffle)
+            .Apply (nums => ShuffleTake (nums, cardSize * cardSize, new Random ()))
             .Buffer (cardSize)
             .Apply (MakeMiddleHole);
 
@@ -27,20 +27,19 @@ class Program {
 
         // ローカル関数定義
 
-        // シャッフルして、cardSize^2に切り取る
-        IEnumerable<T> Shuffle<T> (IEnumerable<T> nums) {
-            var rndGen = new Random ();
-            var rest = nums.ToList ();
-            return Enumerable.Range (0, cardSize * cardSize)
+        // numsをシャッフルし、countだけ先頭からとる
+        IEnumerable<T> ShuffleTake<T> (IEnumerable<T> nums, int count, Random rndGen) {
+            return Enumerable.Range (0, count)
                 .Aggregate (
-                    Enumerable.Empty<T> (),
-                    (shuffled, _) => {
-                        var rndIndex = rndGen.Next (rest.Count);
-                        var nextShuffled = shuffled.Append (rest[rndIndex]);
-                        rest.RemoveAt (rndIndex);
-                        return nextShuffled;
+                    (rest: nums, shuffled: Enumerable.Empty<T> ()),
+                    (arg, _) => {
+                        var (rest, shuffled) = arg;
+                        var rndIndex = rndGen.Next (rest.Count ());
+                        var nextRest = rest.RemoveAt (rndIndex);
+                        var nextShuffled = shuffled.Append (rest.ElementAt (rndIndex));
+                        return (nextRest, nextShuffled);
                     }
-                );
+                ).shuffled;
         }
 
         // Bingoは真ん中だけ空いているので、真ん中だけNothingにする
@@ -63,5 +62,12 @@ static class MyExtentions {
     /// </summary>
     public static TR Apply<T, TR> (this T arg, Func<T, TR> func) {
         return func (arg);
+    }
+
+    /// <summary>
+    /// インデックスの要素を取り除く
+    /// </summary>
+    public static IEnumerable<T> RemoveAt<T> (this IEnumerable<T> source, int index) {
+        return source.Where ((x, i) => i != index);
     }
 }
