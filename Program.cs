@@ -7,11 +7,12 @@ using static MyExtentions;
 class Program {
     static void Main (string[] args) {
         var bingoNumMin = 1;
-        var bingoNumCount = 10000;
-        var cardSize = 33;
+        var bingoNumCount = 100000;
+        var cardSize = 100;
 
         var cardModel = Enumerable.Range (bingoNumMin, bingoNumCount)
-            .Apply (nums => ShuffleTake (nums, cardSize * cardSize, new Random ()))
+            .Apply (nums => Shuffle2 (nums, new Random ()))
+            .Take (cardSize * cardSize)
             .Buffer (cardSize)
             .Apply (MakeMiddleHole);
 
@@ -27,9 +28,10 @@ class Program {
 
         // ローカル関数定義
 
-        // numsをシャッフルし、countだけ先頭からとる
-        IEnumerable<T> ShuffleTake<T> (IEnumerable<T> nums, int count, Random rndGen) {
-            return Enumerable.Range (0, count)
+        // numsをシャッフルする(破壊的代入なし)
+        // O(N^2)
+        IEnumerable<T> Shuffle<T> (IEnumerable<T> nums, Random rndGen) {
+            return nums
                 .Aggregate (
                     (rest: nums, shuffled: Enumerable.Empty<T> ()),
                     (arg, _) => {
@@ -40,6 +42,22 @@ class Program {
                         return (nextRest, nextShuffled);
                     }
                 ).shuffled;
+        }
+
+        // numsをシャッフルする(破壊的代入あり)
+        // O(N^2)だが、遅延性があり後でTakeしてるのでO(K^2)
+        IEnumerable<T> Shuffle2<T> (IEnumerable<T> nums, Random rndGen) {
+            var rest = nums.ToList ();
+            return nums
+                .Aggregate (
+                    Enumerable.Empty<T> (),
+                    (shuffled, _) => {
+                        var rndIndex = rndGen.Next (rest.Count);
+                        var nextShuffled = shuffled.Append (rest[rndIndex]);
+                        rest.RemoveAt (rndIndex);
+                        return nextShuffled;
+                    }
+                );
         }
 
         // Bingoは真ん中だけ空いているので、真ん中だけNothingにする
